@@ -1,0 +1,7 @@
+add time functionality to alarm clock
+set up alarm clock to run on boot
+httpserver to show what alarm time is
+allow for alarm to be set on certain days (i.e. not to go off on the weekend)
+allow for alarm to adjusted from the http server
+add battery back up to raspberry pi zero
+solder components to perma proto board
