@@ -6,14 +6,17 @@ import time
 import RPi.GPIO as GPIO
 import buzzer
 import alarm
+import pickle
 
 # helper function for setting alarm
 def getAlarmValue():
-  f = open("alarm.time","r")
-  response = f.read().strip()
-  f.close()
+    f = open('alarm.pkl','rb')
+    a = pickle.load(f)
+#  f = open("alarm.time","r")
+#  response = f.read().strip()
+    f.close()
 
-  return int(response)
+    return a
 
 # pin definitions
 pwmPin = 18 # Broadcom pin 18 (P1 pin 12)
@@ -38,64 +41,65 @@ ledFlasher = GPIO.PWM(ledFlasherPin, 100)  # Initialize PWM on pwmPin 100Hz freq
 
 # alarm time setting
 print("Current time is %s" % time.strftime("%H:%M"))
-alarm = getAlarmValue()
-newAlarm = alarm
-awake = 0
+currAlarm = getAlarmValue()
+#newAlarm = currAlarm
+#awake = 0
 
 snoozePeriod = 8
-snoozing = 0
+#snoozing = 0
 
 try:
-  # Loop to continuously check time, buzz the buzzer for the set alarm time
-  while True:
-    # Continually get's the time as an integer value
-    curr_time = int(time.strftime("%H%M"))
+    # Loop to continuously check time, buzz the buzzer for the set alarm time
+    while True:
+        # Continually get's the time as an integer value
+        #curr_time = int(time.strftime("%H%M"))
 
-    # update alarm time
-    if snoozing == 0 and awake == 0:
-      alarm = getAlarmValue()
-    
-    # Buzzes the buzzer when the time reaches the set alarm time
-    if curr_time == alarm:
-      print("Alarm triggered at %s" % time.strftime("%H:%M"))
-      ledFlasher.start(dc)
-      alarmbuzzer.buzz(10,0.5)
-      time.sleep(0.25)
-      alarmbuzzer.buzz(20,0.5)
-      time.sleep(0.25)
-      awake = 1
+        # update alarm time
+        if not(currAlarm.isSnoozing()) and not(currAlarm.isAwake()):
+            currAlarm = getAlarmValue()
 
-    # Snoozes the alarm for 8 minutes from the current time
-    # Only works whilst the alarm is buzzing
-    if GPIO.input(snoozeButtonPin) == 0 and awake == 1:
-      snoozing = 1
-      alarm += snoozePeriod
-      awake = 0
-      ledFlasher.stop()
-      print(alarm)
-      print("alarm snoozed")
+        # Buzzes the buzzer when the time reaches the set alarm time
+        if currAlarm.isTrigger(time.localtime()):
+            print("Alarm triggered at %s" % time.strftime("%H:%M"))
+            ledFlasher.start(dc)
+            alarmbuzzer.buzz(10,0.5)
+            time.sleep(0.25)
+            alarmbuzzer.buzz(20,0.5)
+            time.sleep(0.25)
+            #awake = 1
 
-    # alarm stop button
-    elif GPIO.input(offButtonPin) == 0 and awake == 1:
-      awake = 0
-      snoozing = 0
-      ledFlasher.stop()
-      alarm = getAlarmValue()
-      print(alarm)
-      print("alarm reset to next day")
-      time.sleep(60)
-      
-    # If alarm continues past the set alarm time without being
-    # snoozed, the alarm time is changed to the current time.
-    # This ensures the alarm buzzes continuously until the
-    # snooze button is pressed.
-    elif curr_time != alarm and awake == 1:
-      alarm = curr_time
-      alarmbuzzer.buzz(10,0.5)
-      time.sleep(0.25)
-      alarmbuzzer.buzz(20,0.5)
+        # Snoozes the alarm for 8 minutes from the current time
+        # Only works whilst the alarm is buzzing
+        if GPIO.input(snoozeButtonPin) == 0 and currAlarm.isAwake():
+            currAlam.snooze(snoozePeriod)
+            #alarm += snoozePeriod
+            currAlarm.setOff()
+            ledFlasher.stop()
+            print(alarm)
+            print("alarm snoozed")
+
+        # alarm stop button
+        elif GPIO.input(offButtonPin) == 0 and currAlarm.isAwake():
+            currAlarm.setOff()
+            currAlam.snoozeOff()
+            ledFlasher.stop()
+            currAlarm.rest()
+            #alarm = getAlarmValue()
+            print(alarm)
+            print("alarm reset to next day")
+            time.sleep(60)
+
+        # If alarm continues past the set alarm time without being
+        # snoozed, the alarm time is changed to the current time.
+        # This ensures the alarm buzzes continuously until the
+        # snooze button is pressed.
+        #elif curr_time != alarm and awake == 1:
+        #    alarm = curr_time
+        #    alarmbuzzer.buzz(10,0.5)
+        #    time.sleep(0.25)
+        #    alarmbuzzer.buzz(20,0.5)
 
 finally:
-  ledFlasher.stop()
-  GPIO.cleanup()
-  print("End")
+    ledFlasher.stop()
+    GPIO.cleanup()
+    print("End")
