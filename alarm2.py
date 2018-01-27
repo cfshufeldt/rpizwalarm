@@ -53,9 +53,9 @@ try:
     # update alarm time
     if snoozing == 0 and awake == 0:
       alarm = getAlarmValue()
-    
+
     # Buzzes the buzzer when the time reaches the set alarm time
-    if curr_time == alarm:
+    if curr_time == alarm and time.localtime()[6]<5:
       print("Alarm triggered at %s" % time.strftime("%H:%M"))
       ledFlasher.start(dc)
       alarmbuzzer.buzz(10,0.5)
@@ -83,7 +83,7 @@ try:
       print(alarm)
       print("alarm reset to next day")
       time.sleep(60)
-      
+
     # If alarm continues past the set alarm time without being
     # snoozed, the alarm time is changed to the current time.
     # This ensures the alarm buzzes continuously until the
